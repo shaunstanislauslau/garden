@@ -24,11 +24,12 @@ import { ServiceLogEntry } from "garden-cli/src/types/plugin/service/getServiceL
 import { ConfigDump } from "garden-cli/src/garden"
 import { GraphOutput } from "garden-cli/src/commands/get/get-graph"
 import { TaskResultOutput } from "garden-cli/src/commands/get/get-task-result"
-import { StatusCommandResult } from "garden-cli/src/commands/get/get-status"
+import { StatusCommandResult, RunState } from "garden-cli/src/commands/get/get-status"
 import { TestResultOutput } from "garden-cli/src/commands/get/get-test-result"
 import { AxiosError } from "axios"
 import { RenderedNode } from "garden-cli/src/config-graph"
 import { SupportedEventName } from "./events"
+import { ServiceState, ServiceIngress } from "garden-cli/src/types/service"
 
 interface StoreCommon {
   error?: AxiosError
@@ -40,6 +41,61 @@ export interface RenderedNodeWithStatus extends RenderedNode {
 }
 export interface GraphOutputWithNodeStatus extends GraphOutput {
   nodes: RenderedNodeWithStatus[],
+}
+
+export interface Entity {
+  name: string
+  state?: ServiceState | RunState
+  isLoading: boolean
+  dependencies: string[]
+}
+
+export interface Service extends Entity {
+  state?: ServiceState
+  ingresses?: ServiceIngress[]
+}
+export interface Test extends Entity {
+  startedAt?: Date
+  completedAt?: Date
+  duration?: string
+  state?: RunState
+
+}
+export interface Task extends Entity {
+  startedAt?: Date
+  completedAt?: Date
+  duration?: string
+  state?: RunState
+}
+
+export interface Module {
+  name: string
+  path: string
+  type: string
+  repositoryUrl?: string
+  description?: string
+  services: string[]
+  tests: string[]
+  tasks: string[]
+}
+export interface NormalizedStore {
+  data: {
+    modules: { [id: string]: Module }
+    services: { [id: string]: Service }
+    tasks: { [id: string]: Task }
+    tests: { [id: string]: Test }
+    logs: { [id: string]: any }
+  },
+  state: {
+    getLogs: {
+      isLoading: boolean,
+      error: AxiosError,
+    },
+    getStatus: {
+      isLoading: boolean,
+      error: AxiosError,
+    },
+  },
 }
 
 // This is the global data store
@@ -62,6 +118,7 @@ interface Store {
   testResult: StoreCommon & {
     data?: TestResultOutput,
   },
+  normalizedStore: NormalizedStore,
 }
 
 type Context = {
@@ -221,7 +278,6 @@ export const DataContext = React.createContext<Context>({} as Context)
  */
 export const DataProvider: React.FC = ({ children }) => {
   const storeAndActions = useApi()
-
   return (
     <DataContext.Provider value={storeAndActions}>
       {children}
