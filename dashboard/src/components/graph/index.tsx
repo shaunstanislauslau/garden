@@ -13,7 +13,7 @@ import styled from "@emotion/styled"
 import { capitalize } from "lodash"
 import * as d3 from "d3"
 import dagreD3 from "dagre-d3"
-import { Extends } from "garden-cli/src/util/util"
+import { PickFromUnion } from "garden-cli/src/util/util"
 import { ConfigDump } from "garden-cli/src/garden"
 import Card from "../card"
 import "./graph.scss"
@@ -44,7 +44,7 @@ export interface Graph {
 }
 
 // FIXME: We shouldn't repeat the keys for both the type and the set below
-type TaskNodeEventName = Extends<
+type TaskNodeEventName = PickFromUnion<
   SupportedEventName,
   "taskPending" | "taskProcessing" | "taskComplete" | "taskError"
 >
