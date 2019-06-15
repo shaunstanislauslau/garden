@@ -8,7 +8,6 @@
 
 import { useReducer } from "react"
 import React from "react"
-import produce from "immer"
 
 import {
   fetchConfig,
@@ -25,100 +24,22 @@ import { ServiceLogEntry } from "garden-cli/src/types/plugin/service/getServiceL
 import { ConfigDump } from "garden-cli/src/garden"
 import { GraphOutput } from "garden-cli/src/commands/get/get-graph"
 import { TaskResultOutput } from "garden-cli/src/commands/get/get-task-result"
-import { StatusCommandResult, RunState } from "garden-cli/src/commands/get/get-status"
+import { StatusCommandResult } from "garden-cli/src/commands/get/get-status"
 import { TestResultOutput } from "garden-cli/src/commands/get/get-test-result"
 import { AxiosError } from "axios"
 import { RenderedNode } from "garden-cli/src/config-graph"
 import { SupportedEventName } from "./events"
-import { ServiceState, ServiceIngress } from "garden-cli/src/types/service"
-import { ModuleConfig } from "garden-cli/src/config/module"
-import { Omit, PickFromUnion } from "garden-cli/src/util/util"
-import { ServiceConfig } from "garden-cli/src/config/service"
 
 interface StoreCommon {
   error?: AxiosError
   loading: boolean
 }
 
-export type EntityTaskState = PickFromUnion<
-  SupportedEventName, "taskComplete" | "taskError" | "taskPending" | "taskProcessing"
->
-
 export interface RenderedNodeWithStatus extends RenderedNode {
   status?: SupportedEventName
 }
 export interface GraphOutputWithNodeStatus extends GraphOutput {
   nodes: RenderedNodeWithStatus[],
-}
-
-export interface Entity {
-  name: string
-  state?: ServiceState | RunState
-  isLoading: boolean
-  dependencies: string[]
-}
-
-// export interface Service extends Entity {
-//   state?: ServiceState
-//   ingresses?: ServiceIngress[]
-// }
-
-export interface Test extends Entity {
-  startedAt?: Date
-  completedAt?: Date
-  duration?: string
-  state?: RunState
-}
-
-export interface Task extends Entity {
-  startedAt?: Date
-  completedAt?: Date
-  duration?: string
-  state?: RunState
-}
-
-// export interface Module {
-//   name: string
-//   path: string
-//   type: string
-//   repositoryUrl?: string
-//   description?: string
-//   services: string[]
-//   tests: string[]
-//   tasks: string[]
-// }
-
-type ModuleEntity = Omit<ModuleConfig, "serviceConfigs" | "testConfigs" | "taskConfigs"> & {
-  services: string[],
-  tasks: string[],
-  tests: string[],
-  taskNodeState: EntityTaskState, // TODO Rename
-}
-
-interface ServiceEntity {
-  config: ServiceConfig,
-  state: ServiceState,
-  taskNodeState: EntityTaskState,
-}
-
-interface RequestState {
-  isLoading: boolean,
-  error: AxiosError,
-}
-
-export interface NormalizedStore {
-  data: {
-    modules: { [id: string]: ModuleEntity }
-    services: { [id: string]: ServiceEntity }
-    tasks: { [id: string]: Task }
-    tests: { [id: string]: Test }
-    logs: { [id: string]: ServiceLogEntry[] }, // The id is the service name
-  },
-  requestState: {
-    getConfig: RequestState
-    getLogs: RequestState
-    getStatus: RequestState,
-  },
 }
 
 // This is the global data store
@@ -141,7 +62,6 @@ interface Store {
   testResult: StoreCommon & {
     data?: TestResultOutput,
   },
-  normalizedStore: NormalizedStore,
 }
 
 type Context = {
@@ -287,58 +207,6 @@ function useApi() {
       loadStatus,
       loadTaskResult,
       loadTestResult,
-    },
-  }
-}
-
-/**
- * The reducer for the useApi hook. Sets the state for a given slice of the store on fetch events.
- */
-function normalizedReducer(store: NormalizedStore, action: Action) {
-  switch (action.type) {
-    case "fetchStart":
-      const newStore = produce(store, storeDraft => {
-        storeDraft.requestState[action.actionName].isLoading = true
-        return storeDraft
-      })
-      return newStore
-    case "fetchSuccess":
-      return updateSlice(store, action.key, { loading: false, data: action.data, error: undefined })
-    case "fetchFailure":
-      return updateSlice(store, action.key, { loading: false, error: action.error })
-  }
-}
-
-function useNormalizedStore() {
-  const [store, dispatch] = useReducer(normalizedReducer, initialState)
-
-  const fetch = async (key: StoreKey, fetchFn: Function, args?: any[]) => {
-    dispatch({ key, type: "fetchStart" })
-
-    try {
-      const res = args ? await fetchFn(...args) : await fetchFn()
-      dispatch({ key, type: "fetchSuccess", data: res })
-    } catch (error) {
-      dispatch({ key, error, type: "fetchFailure" })
-    }
-  }
-
-  const fetchOrReadFromStore = <T extends Function>(key: StoreKey, action: T, force: boolean, args: any[] = []) => {
-    const { data, loading } = store[key]
-    if (!force && (data || loading)) {
-      return
-    }
-    fetch(key, action, args).catch(error => dispatch({ key, error, type: "fetchFailure" }))
-  }
-
-  const loadConfig: Loader = async (force: boolean = false) => (
-    dispatch({ key: "config", type: "fetchStart" })
-  )
-
-  return {
-    store,
-    actions: {
-      loadConfig,
     },
   }
 }

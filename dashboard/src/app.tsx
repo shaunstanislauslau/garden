@@ -7,7 +7,7 @@
  */
 
 import { css } from "emotion"
-import React, { useContext } from "react"
+import React, { useContext, useEffect } from "react"
 import styled from "@emotion/styled"
 import { Route } from "react-router-dom"
 
@@ -32,6 +32,7 @@ import { ReactComponent as OpenSidebarIcon } from "./assets/open-pane.svg"
 import { ReactComponent as CloseSidebarIcon } from "./assets/close-pane.svg"
 
 import { UiStateProvider, UiStateContext } from "./context/ui"
+import { NormalizedDataProvider, NormalizedDataContext } from "./context/normalized-data"
 
 // Style and align properly
 const Logo = styled.img`
@@ -64,16 +65,50 @@ const SidebarToggleButton = styled.div`
   font-size: 1.125rem;
 `
 
+// const AppContainer = () => {
+//   return (
+//     <div>
+//       <DataProvider>
+//         <EventProvider>
+//           <UiStateProvider>
+//             <App />
+//           </UiStateProvider>
+//         </EventProvider>
+//       </DataProvider>
+//     </div>
+//   )
+// }
+
+// Commented out the main AppContainer to test the new normalized data provider.
 const AppContainer = () => {
   return (
     <div>
-      <DataProvider>
-        <EventProvider>
-          <UiStateProvider>
-            <App />
-          </UiStateProvider>
-        </EventProvider>
-      </DataProvider>
+      <NormalizedDataProvider>
+        <Test />
+      </NormalizedDataProvider>
+    </div>
+  )
+}
+
+// Test component for logging responses from the normalized data provider.
+const Test = () => {
+  const {
+    store: { entities: data, requestStates: requestState },
+    actions: { loadConfig, loadLogs },
+  } = useContext(NormalizedDataContext)
+
+  useEffect(() => { loadConfig() }, [])
+
+  const logs = () => loadLogs(["backend", "frontend"])
+
+  console.log(data, requestState)
+
+  return (
+    <div>
+      <p>Hello world</p>
+      <button onClick={logs}>
+        Load Logs
+      </button>
     </div>
   )
 }

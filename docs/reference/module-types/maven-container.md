@@ -314,6 +314,7 @@ Annotations to attach to the service (Note: May not be applicable to all provide
 | -------- | -------- | ------- |
 | `object` | No       | `{}`    |
 
+<<<<<<< HEAD
 ### `services[].command[]`
 
 [services](#services) > command
@@ -333,6 +334,8 @@ services:
     - '-c'
 ```
 
+=======
+>>>>>>> chore: save
 ### `services[].args[]`
 
 [services](#services) > args
@@ -342,15 +345,6 @@ The arguments to run the container with when starting the service.
 | Type            | Required |
 | --------------- | -------- |
 | `array[string]` | No       |
-
-Example:
-
-```yaml
-services:
-  - args:
-    - npm
-    - start
-```
 
 ### `services[].daemon`
 
@@ -502,6 +496,7 @@ Set this to check the service's health by checking if this TCP port is accepting
 | -------- | -------- |
 | `string` | No       |
 
+<<<<<<< HEAD
 ### `services[].hotReloadCommand[]`
 
 [services](#services) > hotReloadCommand
@@ -521,25 +516,17 @@ services:
     - '-c'
 ```
 
+=======
+>>>>>>> chore: save
 ### `services[].hotReloadArgs[]`
 
 [services](#services) > hotReloadArgs
 
-If this module uses the `hotReload` field, the container will be run with these arguments when the service is deployed with hot reloading enabled.
+If this module uses the `hotReload` field, the container will be run with these arguments instead of those in `args` when the service is deployed with hot reloading enabled.
 
 | Type            | Required |
 | --------------- | -------- |
 | `array[string]` | No       |
-
-Example:
-
-```yaml
-services:
-  - hotReloadArgs:
-    - npm
-    - run
-    - dev
-```
 
 ### `services[].limits`
 
@@ -744,6 +731,7 @@ Maximum duration (in seconds) of the test run.
 | -------- | -------- | ------- |
 | `number` | No       | `null`  |
 
+<<<<<<< HEAD
 ### `tests[].command[]`
 
 [tests](#tests) > command
@@ -763,6 +751,8 @@ tests:
     - '-c'
 ```
 
+=======
+>>>>>>> chore: save
 ### `tests[].args[]`
 
 [tests](#tests) > args
@@ -840,6 +830,7 @@ Maximum duration (in seconds) of the task's execution.
 | -------- | -------- | ------- |
 | `number` | No       | `null`  |
 
+<<<<<<< HEAD
 ### `tasks[].command[]`
 
 [tasks](#tasks) > command
@@ -859,6 +850,8 @@ tasks:
     - '-c'
 ```
 
+=======
+>>>>>>> chore: save
 ### `tasks[].args[]`
 
 [tasks](#tasks) > args
@@ -947,7 +940,6 @@ services:
   - name:
     dependencies: []
     annotations: {}
-    command:
     args:
     daemon: false
     ingresses:
@@ -963,7 +955,6 @@ services:
         scheme: HTTP
       command:
       tcpPort:
-    hotReloadCommand:
     hotReloadArgs:
     limits:
       cpu: 1000
@@ -984,7 +975,6 @@ tests:
   - name:
     dependencies: []
     timeout: null
-    command:
     args:
     env: {}
 tasks:
@@ -992,7 +982,6 @@ tasks:
     description:
     dependencies: []
     timeout: null
-    command:
     args:
     env: {}
 jarPath:

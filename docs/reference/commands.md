@@ -13,14 +13,16 @@ The following option flags can be used with any of the CLI commands:
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
+  | `--version` | `-v` | string | Show the current CLI version.
+  | `--help` | `-h` | string | Show help
   | `--root` | `-r` | string | Override project root directory (defaults to working directory).
   | `--silent` | `-s` | boolean | Suppress log output. Same as setting --logger-type&#x3D;quiet.
   | `--env` | `-e` | string | The environment (and optionally namespace) to work against.
   | `--logger-type` |  | `quiet` `basic` `fancy` `json`  | Set logger type.
-fancy: updates log lines in-place when their status changes (e.g. when tasks complete),
-basic: appends a new log line when a log line&#x27;s status changes,
-json: same as basic, but renders log lines as JSON,
-quiet: suppresses all log output, same as --silent.
+[1mfancy:[22m updates log lines in-place when their status changes (e.g. when tasks complete),
+[1mbasic:[22m appends a new log line when a log line&#x27;s status changes,
+[1mjson:[22m same as basic, but renders log lines as JSON,
+[1mquiet:[22m suppresses all log output, same as --silent.
   | `--log-level` | `-l` | `error` `warn` `info` `verbose` `debug` `silly` `0` `1` `2` `3` `4` `5`  | Set logger level. Values can be either string or numeric and are prioritized from 0 to 5 (highest to lowest) as follows: error: 0, warn: 1, info: 2, verbose: 3, debug: 4, silly: 5.
   | `--output` | `-o` | `json` `yaml`  | Output command result in specified format (note: disables progress logging and interactive functionality).
   | `--emoji` |  | boolean | Enable emoji in output (defaults to true if the environment supports it).
@@ -499,14 +501,14 @@ Examples:
 
 ##### Usage
 
-    garden run module <module> [arguments] [options]
+    garden run module <module> [command] [options]
 
 ##### Arguments
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
   | `module` | Yes | The name of the module to run.
-  | `arguments` | No | The arguments to run the module with. Example: &#x27;npm run my-script&#x27;.
+  | `command` | No | The command to run in the module.
 
 ##### Options
 
@@ -514,7 +516,6 @@ Examples:
 | -------- | ----- | ---- | ----------- |
   | `--interactive` |  | boolean | Set to false to skip interactive mode and just output the command result.
   | `--force-build` |  | boolean | Force rebuild of module before running.
-  | `--command` | `-c` | array:string | The base command (a.k.a. entrypoint) to run in the module. For container modules, for example, this overrides the image&#x27;s default command/entrypoint. This option may not be relevant for all module types. Example: &#x27;/bin/sh -c&#x27;.
 
 ### garden run service
 
@@ -808,32 +809,4 @@ Throws an error and exits with code 1 if something's not right in your garden.ym
 ##### Usage
 
     garden validate 
-
-### garden config analytics-enabled
-
-Update your preferences regarding analytics.
-
-To help us make Garden better, you can opt in to the collection of usage data.
-We make sure all the data collected is anonymized and stripped of sensitive
-information. We collect data about which commands are run, what tasks they trigger,
-which API calls are made to your local Garden server, as well as some info
-about the environment in which Garden runs.
-
-You will be asked if you want to opt-in when running Garden for the
-first time and you can use this command to update your preferences later.
-
-Examples:
-
-    garden config analytics-enabled true   # enable analytics
-    garden config analytics-enabled false  # disable analytics
-
-##### Usage
-
-    garden config analytics-enabled [enable] 
-
-##### Arguments
-
-| Argument | Required | Description |
-| -------- | -------- | ----------- |
-  | `enable` | No | Enable analytics. Defaults to &quot;true&quot;
 

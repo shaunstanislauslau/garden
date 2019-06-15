@@ -6,11 +6,152 @@ The reference is divided into two sections. The [first section](#configuration-k
 
 ## Configuration keys
 
+### `apiVersion`
+
+The schema version of this project's config (currently not used).
+
+| Type | Required | Allowed Values |
+| ---- | -------- | -------------- |
+| `string` | Yes | "garden.io/v0"
+
+### `kind`
+
+| Type | Required | Allowed Values |
+| ---- | -------- | -------------- |
+| `string` | Yes | "Project"
+
+### `name`
+
+The name of the project.
+
+| Type | Required |
+| ---- | -------- |
+| `string` | Yes
+
+Example:
+
+```yaml
+name: "my-sweet-project"
+```
+
+### `defaultEnvironment`
+
+The default environment to use when calling commands without the `--env` parameter.
+
+| Type | Required |
+| ---- | -------- |
+| `string` | No
+
+### `environmentDefaults`
+
+DEPRECATED - Please use the `providers` field instead, and omit the environments key in the configured provider to use it for all environments, and use the `variables` field to configure variables across all environments.
+
+| Type | Required |
+| ---- | -------- |
+| `object` | No
+
+Example:
+
+```yaml
+environmentDefaults:
+  providers: []
+  variables: {}
+```
+
+### `environmentDefaults.providers[]`
+
+[environmentDefaults](#environmentdefaults) > providers
+
+DEPRECATED - Please use the top-level `providers` field instead, and if needed use the `environments` key on the provider configurations to limit them to specific environments.
+
+| Type | Required |
+| ---- | -------- |
+| `array[object]` | No
+
+### `environmentDefaults.providers[].name`
+
+[environmentDefaults](#environmentdefaults) > [providers](#environmentdefaults.providers[]) > name
+
+The name of the provider plugin to use.
+
+| Type | Required |
+| ---- | -------- |
+| `string` | Yes
+
+Example:
+
+```yaml
+environmentDefaults:
+  providers: []
+  variables: {}
+  ...
+  providers:
+    - name: "local-kubernetes"
+```
+
+### `environmentDefaults.providers[].environments[]`
+
+[environmentDefaults](#environmentdefaults) > [providers](#environmentdefaults.providers[]) > environments
+
+If specified, this provider will only be used in the listed environments. Note that an empty array effectively disables the provider. To use a provider in all environments, omit this field.
+
+| Type | Required |
+| ---- | -------- |
+| `array[string]` | No
+
+Example:
+
+```yaml
+environmentDefaults:
+  providers: []
+  variables: {}
+  ...
+  providers:
+    - environments:
+      - dev
+      - stage
+```
+
+### `environmentDefaults.variables`
+
+[environmentDefaults](#environmentdefaults) > variables
+
+A key/value map of variables that modules can reference when using this environment. These take precedence over variables defined in the top-level `variables` field.
+
+| Type | Required |
+| ---- | -------- |
+| `object` | No
+
 ### `providers`
 
+<<<<<<< HEAD
 | Type            | Required | Default |
 | --------------- | -------- | ------- |
 | `array[object]` | No       | `[]`    |
+=======
+A list of providers that should be used for this project, and their configuration. Please refer to individual plugins/providers for details on how to configure them.
+
+| Type | Required |
+| ---- | -------- |
+| `array[object]` | No
+>>>>>>> chore: save
+
+### `providers[].name`
+
+[providers](#providers) > name
+
+The name of the provider plugin to use.
+
+| Type | Required |
+| ---- | -------- |
+| `string` | Yes
+
+Example:
+
+```yaml
+providers:
+  - name: "local-kubernetes"
+```
 
 ### `providers[].environments[]`
 
@@ -31,33 +172,98 @@ providers:
     - stage
 ```
 
-### `providers[].buildMode`
+### `sources`
 
-[providers](#providers) > buildMode
+A list of remote sources to import into project.
 
-Choose the mechanism for building container images before deploying. By default it uses the local Docker
-daemon, but you can set it to `cluster-docker` or `kaniko` to sync files to a remote Docker daemon,
-installed in the cluster, and build container images there. This removes the need to run Docker or
-Kubernetes locally, and allows you to share layer and image caches between multiple developers, as well
-as between your development and CI workflows.
+| Type | Required |
+| ---- | -------- |
+| `array[object]` | No
 
-This is currently experimental and sometimes not desired, so it's not enabled by default. For example when using
-the `local-kubernetes` provider with Docker for Desktop and Minikube, we directly use the in-cluster docker
-daemon when building. You might also be deploying to a remote cluster that isn't intended as a development
-environment, so you'd want your builds to happen elsewhere.
+### `sources[].name`
 
-Functionally, both `cluster-docker` and `kaniko` do the same thing, but use different underlying mechanisms
-to build. The former uses a normal Docker daemon in the cluster. Because this has to run in privileged mode,
-this is less secure than Kaniko, but in turn it is generally faster. See the
-[Kaniko docs](https://github.com/GoogleContainerTools/kaniko) for more information on Kaniko.
+[sources](#sources) > name
+
+The name of the source to import
+
+| Type | Required |
+| ---- | -------- |
+| `string` | Yes
+
+### `sources[].repositoryUrl`
+
+[sources](#sources) > repositoryUrl
+
+A remote repository URL. Currently only supports git servers. Must contain a hash suffix pointing to a specific branch or tag, with the format: <git remote url>#<branch|tag>
+
+| Type | Required |
+| ---- | -------- |
+| `string` | Yes
+
+Example:
+
+```yaml
+sources:
+  - repositoryUrl: "git+https://github.com/org/repo.git#v2.0"
+```
+
+### `variables`
+
+Variables to configure for all environments.
+
+| Type | Required |
+| ---- | -------- |
+| `object` | No
+
+### `environments`
+
+| Type | Required |
+| ---- | -------- |
+| `array[object]` | No
+
+### `environments[].providers[]`
+
+[environments](#environments) > providers
+
+| Type | Required |
+| ---- | -------- |
+| `array[object]` | No
+
+### `environments[].providers[].environments[]`
+
+[environments](#environments) > [providers](#environments[].providers[]) > environments
+
+If specified, this provider will only be used in the listed environments. Note that an empty array effectively disables the provider. To use a provider in all environments, omit this field.
+
+| Type | Required |
+| ---- | -------- |
+| `array[string]` | No
+
+Example:
+
+```yaml
+environments:
+  - providers:
+      - environments:
+        - dev
+        - stage
+```
+
+### `environments[].providers[].buildMode`
+
+[environments](#environments) > [providers](#environments[].providers[]) > buildMode
+
+Choose the mechanism used to build containers before deploying. By default it uses the local docker, but you can set it to 'cluster-docker' or 'kaniko' to sync files to a remote docker daemon, installed in the cluster, and build container images there. This avoids the need to run Docker or Kubernetes locally, and allows you to share layer and image caches between multiple developers, as well as between your development and CI workflows.
+This is currently experimental and sometimes not desired, so it's not enabled by default. For example when using the `local-kubernetes` provider with Docker for Desktop and Minikube, we directly use the in-cluster docker daemon when building. You might also be deploying to a remote cluster that isn't intended as a development environment, so you'd want your builds to happen elsewhere.
+Functionally, both 'cluster-docker' and 'kaniko' do the same thing, but use different underlying mechanisms to build. The former uses a normal Docker daemon in the cluster. Because this has to run in privileged mode, this is less secure than Kaniko, but in turn it is generally faster. See the [Kaniko docs](https://github.com/GoogleContainerTools/kaniko) for more information.
 
 | Type     | Required | Default          |
 | -------- | -------- | ---------------- |
 | `string` | No       | `"local-docker"` |
 
-### `providers[].defaultHostname`
+### `environments[].providers[].defaultHostname`
 
-[providers](#providers) > defaultHostname
+[environments](#environments) > [providers](#environments[].providers[]) > defaultHostname
 
 A default hostname to use when no hostname is explicitly configured for a service.
 
@@ -68,13 +274,14 @@ A default hostname to use when no hostname is explicitly configured for a servic
 Example:
 
 ```yaml
-providers:
-  - defaultHostname: "api.mydomain.com"
+environments:
+  - providers:
+      - defaultHostname: "api.mydomain.com"
 ```
 
-### `providers[].defaultUsername`
+### `environments[].providers[].defaultUsername`
 
-[providers](#providers) > defaultUsername
+[environments](#environments) > [providers](#environments[].providers[]) > defaultUsername
 
 Set a default username (used for namespacing within a cluster).
 
@@ -82,19 +289,19 @@ Set a default username (used for namespacing within a cluster).
 | -------- | -------- |
 | `string` | No       |
 
-### `providers[].forceSsl`
+### `environments[].providers[].forceSsl`
 
-[providers](#providers) > forceSsl
+[environments](#environments) > [providers](#environments[].providers[]) > forceSsl
 
-Require SSL on all `container` module services. If set to true, an error is raised when no certificate is available for a configured hostname on a `container` module.
+Require SSL on all services. If set to true, an error is raised when no certificate is available for a configured hostname.
 
 | Type      | Required | Default |
 | --------- | -------- | ------- |
 | `boolean` | No       | `false` |
 
-### `providers[].imagePullSecrets[]`
+### `environments[].providers[].imagePullSecrets[]`
 
-[providers](#providers) > imagePullSecrets
+[environments](#environments) > [providers](#environments[].providers[]) > imagePullSecrets
 
 References to `docker-registry` secrets to use for authenticating with remote registries when pulling
 images. This is necessary if you reference private images in your module configuration, and is required
@@ -104,9 +311,9 @@ when configuring a remote Kubernetes environment with buildMode=local.
 | --------------- | -------- | ------- |
 | `array[object]` | No       | `[]`    |
 
-### `providers[].imagePullSecrets[].name`
+### `environments[].providers[].imagePullSecrets[].name`
 
-[providers](#providers) > [imagePullSecrets](#providers[].imagepullsecrets[]) > name
+[environments](#environments) > [providers](#environments[].providers[]) > [imagePullSecrets](#environments[].providers[].imagepullsecrets[]) > name
 
 The name of the Kubernetes secret.
 
@@ -117,14 +324,15 @@ The name of the Kubernetes secret.
 Example:
 
 ```yaml
-providers:
-  - imagePullSecrets:
-      - name: "my-secret"
+environments:
+  - providers:
+      - imagePullSecrets:
+          - name: "my-secret"
 ```
 
-### `providers[].imagePullSecrets[].namespace`
+### `environments[].providers[].imagePullSecrets[].namespace`
 
-[providers](#providers) > [imagePullSecrets](#providers[].imagepullsecrets[]) > namespace
+[environments](#environments) > [providers](#environments[].providers[]) > [imagePullSecrets](#environments[].providers[].imagepullsecrets[]) > namespace
 
 The namespace where the secret is stored. If necessary, the secret may be copied to the appropriate namespace before use.
 
@@ -132,44 +340,35 @@ The namespace where the secret is stored. If necessary, the secret may be copied
 | -------- | -------- | ----------- |
 | `string` | No       | `"default"` |
 
-### `providers[].resources`
+### `environments[].providers[].resources`
 
-[providers](#providers) > resources
+[environments](#environments) > [providers](#environments[].providers[]) > resources
 
-Resource requests and limits for the in-cluster builder, container registry and code sync service. (which are automatically installed and used when `buildMode` is `cluster-docker` or `kaniko`).
+Resource requests and limits for the in-cluster builder and container registry (which are automatically installed and used when buildMode is 'cluster-docker' or 'kaniko').
 
 | Type     | Required | Default                                                                                                                                                                                                                                                    |
 | -------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `object` | No       | `{"builder":{"limits":{"cpu":2000,"memory":4096},"requests":{"cpu":200,"memory":512}},"registry":{"limits":{"cpu":2000,"memory":4096},"requests":{"cpu":200,"memory":512}},"sync":{"limits":{"cpu":200,"memory":256},"requests":{"cpu":100,"memory":64}}}` |
 
-### `providers[].resources.builder`
+### `environments[].providers[].resources.builder`
 
-[providers](#providers) > [resources](#providers[].resources) > builder
-
-Resource requests and limits for the in-cluster builder.
-
-When `buildMode` is `cluster-docker`, this refers to the Docker Daemon that is installed and run
-cluster-wide. This is shared across all users and builds, so it should be resourced accordingly, factoring
-in how many concurrent builds you expect and how heavy your builds tend to be.
-
-When `buildMode` is `kaniko`, this refers to _each instance_ of Kaniko, so you'd generally use lower
-limits/requests, but you should evaluate based on your needs.
+[environments](#environments) > [providers](#environments[].providers[]) > [resources](#environments[].providers[].resources) > builder
 
 | Type     | Required | Default                                                                     |
 | -------- | -------- | --------------------------------------------------------------------------- |
 | `object` | No       | `{"limits":{"cpu":2000,"memory":4096},"requests":{"cpu":200,"memory":512}}` |
 
-### `providers[].resources.builder.limits`
+### `environments[].providers[].resources.builder.limits`
 
-[providers](#providers) > [resources](#providers[].resources) > [builder](#providers[].resources.builder) > limits
+[environments](#environments) > [providers](#environments[].providers[]) > [resources](#environments[].providers[].resources) > [builder](#environments[].providers[].resources.builder) > limits
 
 | Type     | Required | Default                      |
 | -------- | -------- | ---------------------------- |
 | `object` | No       | `{"cpu":2000,"memory":4096}` |
 
-### `providers[].resources.builder.limits.cpu`
+### `environments[].providers[].resources.builder.limits.cpu`
 
-[providers](#providers) > [resources](#providers[].resources) > [builder](#providers[].resources.builder) > [limits](#providers[].resources.builder.limits) > cpu
+[environments](#environments) > [providers](#environments[].providers[]) > [resources](#environments[].providers[].resources) > [builder](#environments[].providers[].resources.builder) > [limits](#environments[].providers[].resources.builder.limits) > cpu
 
 CPU limit in millicpu.
 
@@ -177,22 +376,9 @@ CPU limit in millicpu.
 | -------- | -------- | ------- |
 | `number` | No       | `2000`  |
 
-Example:
+### `environments[].providers[].resources.builder.limits.memory`
 
-```yaml
-providers:
-  - resources:
-      ...
-      builder:
-        ...
-        limits:
-          ...
-          cpu: 2000
-```
-
-### `providers[].resources.builder.limits.memory`
-
-[providers](#providers) > [resources](#providers[].resources) > [builder](#providers[].resources.builder) > [limits](#providers[].resources.builder.limits) > memory
+[environments](#environments) > [providers](#environments[].providers[]) > [resources](#environments[].providers[].resources) > [builder](#environments[].providers[].resources.builder) > [limits](#environments[].providers[].resources.builder.limits) > memory
 
 Memory limit in megabytes.
 
@@ -200,30 +386,17 @@ Memory limit in megabytes.
 | -------- | -------- | ------- |
 | `number` | No       | `4096`  |
 
-Example:
+### `environments[].providers[].resources.builder.requests`
 
-```yaml
-providers:
-  - resources:
-      ...
-      builder:
-        ...
-        limits:
-          ...
-          memory: 4096
-```
-
-### `providers[].resources.builder.requests`
-
-[providers](#providers) > [resources](#providers[].resources) > [builder](#providers[].resources.builder) > requests
+[environments](#environments) > [providers](#environments[].providers[]) > [resources](#environments[].providers[].resources) > [builder](#environments[].providers[].resources.builder) > requests
 
 | Type     | Required | Default                    |
 | -------- | -------- | -------------------------- |
 | `object` | No       | `{"cpu":200,"memory":512}` |
 
-### `providers[].resources.builder.requests.cpu`
+### `environments[].providers[].resources.builder.requests.cpu`
 
-[providers](#providers) > [resources](#providers[].resources) > [builder](#providers[].resources.builder) > [requests](#providers[].resources.builder.requests) > cpu
+[environments](#environments) > [providers](#environments[].providers[]) > [resources](#environments[].providers[].resources) > [builder](#environments[].providers[].resources.builder) > [requests](#environments[].providers[].resources.builder.requests) > cpu
 
 CPU request in millicpu.
 
@@ -231,22 +404,9 @@ CPU request in millicpu.
 | -------- | -------- | ------- |
 | `number` | No       | `200`   |
 
-Example:
+### `environments[].providers[].resources.builder.requests.memory`
 
-```yaml
-providers:
-  - resources:
-      ...
-      builder:
-        ...
-        requests:
-          ...
-          cpu: 200
-```
-
-### `providers[].resources.builder.requests.memory`
-
-[providers](#providers) > [resources](#providers[].resources) > [builder](#providers[].resources.builder) > [requests](#providers[].resources.builder.requests) > memory
+[environments](#environments) > [providers](#environments[].providers[]) > [resources](#environments[].providers[].resources) > [builder](#environments[].providers[].resources.builder) > [requests](#environments[].providers[].resources.builder.requests) > memory
 
 Memory request in megabytes.
 
@@ -254,44 +414,25 @@ Memory request in megabytes.
 | -------- | -------- | ------- |
 | `number` | No       | `512`   |
 
-Example:
+### `environments[].providers[].resources.registry`
 
-```yaml
-providers:
-  - resources:
-      ...
-      builder:
-        ...
-        requests:
-          ...
-          memory: 512
-```
-
-### `providers[].resources.registry`
-
-[providers](#providers) > [resources](#providers[].resources) > registry
-
-Resource requests and limits for the in-cluster image registry. Built images are pushed to this registry,
-so that they are available to all the nodes in your cluster.
-
-This is shared across all users and builds, so it should be resourced accordingly, factoring
-in how many concurrent builds you expect and how large your images tend to be.
+[environments](#environments) > [providers](#environments[].providers[]) > [resources](#environments[].providers[].resources) > registry
 
 | Type     | Required | Default                                                                     |
 | -------- | -------- | --------------------------------------------------------------------------- |
 | `object` | No       | `{"limits":{"cpu":2000,"memory":4096},"requests":{"cpu":200,"memory":512}}` |
 
-### `providers[].resources.registry.limits`
+### `environments[].providers[].resources.registry.limits`
 
-[providers](#providers) > [resources](#providers[].resources) > [registry](#providers[].resources.registry) > limits
+[environments](#environments) > [providers](#environments[].providers[]) > [resources](#environments[].providers[].resources) > [registry](#environments[].providers[].resources.registry) > limits
 
 | Type     | Required | Default                      |
 | -------- | -------- | ---------------------------- |
 | `object` | No       | `{"cpu":2000,"memory":4096}` |
 
-### `providers[].resources.registry.limits.cpu`
+### `environments[].providers[].resources.registry.limits.cpu`
 
-[providers](#providers) > [resources](#providers[].resources) > [registry](#providers[].resources.registry) > [limits](#providers[].resources.registry.limits) > cpu
+[environments](#environments) > [providers](#environments[].providers[]) > [resources](#environments[].providers[].resources) > [registry](#environments[].providers[].resources.registry) > [limits](#environments[].providers[].resources.registry.limits) > cpu
 
 CPU limit in millicpu.
 
@@ -299,22 +440,9 @@ CPU limit in millicpu.
 | -------- | -------- | ------- |
 | `number` | No       | `2000`  |
 
-Example:
+### `environments[].providers[].resources.registry.limits.memory`
 
-```yaml
-providers:
-  - resources:
-      ...
-      registry:
-        ...
-        limits:
-          ...
-          cpu: 2000
-```
-
-### `providers[].resources.registry.limits.memory`
-
-[providers](#providers) > [resources](#providers[].resources) > [registry](#providers[].resources.registry) > [limits](#providers[].resources.registry.limits) > memory
+[environments](#environments) > [providers](#environments[].providers[]) > [resources](#environments[].providers[].resources) > [registry](#environments[].providers[].resources.registry) > [limits](#environments[].providers[].resources.registry.limits) > memory
 
 Memory limit in megabytes.
 
@@ -322,30 +450,17 @@ Memory limit in megabytes.
 | -------- | -------- | ------- |
 | `number` | No       | `4096`  |
 
-Example:
+### `environments[].providers[].resources.registry.requests`
 
-```yaml
-providers:
-  - resources:
-      ...
-      registry:
-        ...
-        limits:
-          ...
-          memory: 4096
-```
-
-### `providers[].resources.registry.requests`
-
-[providers](#providers) > [resources](#providers[].resources) > [registry](#providers[].resources.registry) > requests
+[environments](#environments) > [providers](#environments[].providers[]) > [resources](#environments[].providers[].resources) > [registry](#environments[].providers[].resources.registry) > requests
 
 | Type     | Required | Default                    |
 | -------- | -------- | -------------------------- |
 | `object` | No       | `{"cpu":200,"memory":512}` |
 
-### `providers[].resources.registry.requests.cpu`
+### `environments[].providers[].resources.registry.requests.cpu`
 
-[providers](#providers) > [resources](#providers[].resources) > [registry](#providers[].resources.registry) > [requests](#providers[].resources.registry.requests) > cpu
+[environments](#environments) > [providers](#environments[].providers[]) > [resources](#environments[].providers[].resources) > [registry](#environments[].providers[].resources.registry) > [requests](#environments[].providers[].resources.registry.requests) > cpu
 
 CPU request in millicpu.
 
@@ -353,22 +468,9 @@ CPU request in millicpu.
 | -------- | -------- | ------- |
 | `number` | No       | `200`   |
 
-Example:
+### `environments[].providers[].resources.registry.requests.memory`
 
-```yaml
-providers:
-  - resources:
-      ...
-      registry:
-        ...
-        requests:
-          ...
-          cpu: 200
-```
-
-### `providers[].resources.registry.requests.memory`
-
-[providers](#providers) > [resources](#providers[].resources) > [registry](#providers[].resources.registry) > [requests](#providers[].resources.registry.requests) > memory
+[environments](#environments) > [providers](#environments[].providers[]) > [resources](#environments[].providers[].resources) > [registry](#environments[].providers[].resources.registry) > [requests](#environments[].providers[].resources.registry.requests) > memory
 
 Memory request in megabytes.
 
@@ -376,42 +478,25 @@ Memory request in megabytes.
 | -------- | -------- | ------- |
 | `number` | No       | `512`   |
 
-Example:
+### `environments[].providers[].resources.sync`
 
-```yaml
-providers:
-  - resources:
-      ...
-      registry:
-        ...
-        requests:
-          ...
-          memory: 512
-```
-
-### `providers[].resources.sync`
-
-[providers](#providers) > [resources](#providers[].resources) > sync
-
-Resource requests and limits for the code sync service, which we use to sync build contexts to the cluster
-ahead of building images. This generally is not resource intensive, but you might want to adjust the
-defaults if you have many concurrent users.
+[environments](#environments) > [providers](#environments[].providers[]) > [resources](#environments[].providers[].resources) > sync
 
 | Type     | Required | Default                                                                  |
 | -------- | -------- | ------------------------------------------------------------------------ |
 | `object` | No       | `{"limits":{"cpu":200,"memory":256},"requests":{"cpu":100,"memory":64}}` |
 
-### `providers[].resources.sync.limits`
+### `environments[].providers[].resources.sync.limits`
 
-[providers](#providers) > [resources](#providers[].resources) > [sync](#providers[].resources.sync) > limits
+[environments](#environments) > [providers](#environments[].providers[]) > [resources](#environments[].providers[].resources) > [sync](#environments[].providers[].resources.sync) > limits
 
 | Type     | Required | Default                    |
 | -------- | -------- | -------------------------- |
 | `object` | No       | `{"cpu":200,"memory":256}` |
 
-### `providers[].resources.sync.limits.cpu`
+### `environments[].providers[].resources.sync.limits.cpu`
 
-[providers](#providers) > [resources](#providers[].resources) > [sync](#providers[].resources.sync) > [limits](#providers[].resources.sync.limits) > cpu
+[environments](#environments) > [providers](#environments[].providers[]) > [resources](#environments[].providers[].resources) > [sync](#environments[].providers[].resources.sync) > [limits](#environments[].providers[].resources.sync.limits) > cpu
 
 CPU limit in millicpu.
 
@@ -419,22 +504,9 @@ CPU limit in millicpu.
 | -------- | -------- | ------- |
 | `number` | No       | `200`   |
 
-Example:
+### `environments[].providers[].resources.sync.limits.memory`
 
-```yaml
-providers:
-  - resources:
-      ...
-      sync:
-        ...
-        limits:
-          ...
-          cpu: 200
-```
-
-### `providers[].resources.sync.limits.memory`
-
-[providers](#providers) > [resources](#providers[].resources) > [sync](#providers[].resources.sync) > [limits](#providers[].resources.sync.limits) > memory
+[environments](#environments) > [providers](#environments[].providers[]) > [resources](#environments[].providers[].resources) > [sync](#environments[].providers[].resources.sync) > [limits](#environments[].providers[].resources.sync.limits) > memory
 
 Memory limit in megabytes.
 
@@ -442,30 +514,17 @@ Memory limit in megabytes.
 | -------- | -------- | ------- |
 | `number` | No       | `256`   |
 
-Example:
+### `environments[].providers[].resources.sync.requests`
 
-```yaml
-providers:
-  - resources:
-      ...
-      sync:
-        ...
-        limits:
-          ...
-          memory: 256
-```
-
-### `providers[].resources.sync.requests`
-
-[providers](#providers) > [resources](#providers[].resources) > [sync](#providers[].resources.sync) > requests
+[environments](#environments) > [providers](#environments[].providers[]) > [resources](#environments[].providers[].resources) > [sync](#environments[].providers[].resources.sync) > requests
 
 | Type     | Required | Default                   |
 | -------- | -------- | ------------------------- |
 | `object` | No       | `{"cpu":100,"memory":64}` |
 
-### `providers[].resources.sync.requests.cpu`
+### `environments[].providers[].resources.sync.requests.cpu`
 
-[providers](#providers) > [resources](#providers[].resources) > [sync](#providers[].resources.sync) > [requests](#providers[].resources.sync.requests) > cpu
+[environments](#environments) > [providers](#environments[].providers[]) > [resources](#environments[].providers[].resources) > [sync](#environments[].providers[].resources.sync) > [requests](#environments[].providers[].resources.sync.requests) > cpu
 
 CPU request in millicpu.
 
@@ -473,22 +532,9 @@ CPU request in millicpu.
 | -------- | -------- | ------- |
 | `number` | No       | `100`   |
 
-Example:
+### `environments[].providers[].resources.sync.requests.memory`
 
-```yaml
-providers:
-  - resources:
-      ...
-      sync:
-        ...
-        requests:
-          ...
-          cpu: 100
-```
-
-### `providers[].resources.sync.requests.memory`
-
-[providers](#providers) > [resources](#providers[].resources) > [sync](#providers[].resources.sync) > [requests](#providers[].resources.sync.requests) > memory
+[environments](#environments) > [providers](#environments[].providers[]) > [resources](#environments[].providers[].resources) > [sync](#environments[].providers[].resources.sync) > [requests](#environments[].providers[].resources.sync.requests) > memory
 
 Memory request in megabytes.
 
@@ -496,48 +542,27 @@ Memory request in megabytes.
 | -------- | -------- | ------- |
 | `number` | No       | `64`    |
 
-Example:
+### `environments[].providers[].storage`
 
-```yaml
-providers:
-  - resources:
-      ...
-      sync:
-        ...
-        requests:
-          ...
-          memory: 64
-```
+[environments](#environments) > [providers](#environments[].providers[]) > storage
 
-### `providers[].storage`
-
-[providers](#providers) > storage
-
-Storage parameters to set for the in-cluster builder, container registry and code sync persistent volumes
-(which are automatically installed and used when `buildMode` is `cluster-docker` or `kaniko`).
-
-These are all shared cluster-wide across all users and builds, so they should be resourced accordingly,
-factoring in how many concurrent builds you expect and how large your images and build contexts tend to be.
+Storage parameters to set for the in-cluster builder, container registry and code sync persistent volumes (which are automatically installed and used when buildMode is 'cluster-docker' or 'kaniko').
 
 | Type     | Required | Default                                                                                                                                  |
 | -------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | `object` | No       | `{"builder":{"size":10240,"storageClass":null},"registry":{"size":10240,"storageClass":null},"sync":{"size":10240,"storageClass":null}}` |
 
-### `providers[].storage.builder`
+### `environments[].providers[].storage.builder`
 
-[providers](#providers) > [storage](#providers[].storage) > builder
-
-Storage parameters for the data volume for the in-cluster Docker Daemon.
-
-Only applies when `buildMode` is set to `cluster-docker`, ignored otherwise.
+[environments](#environments) > [providers](#environments[].providers[]) > [storage](#environments[].providers[].storage) > builder
 
 | Type     | Required | Default                              |
 | -------- | -------- | ------------------------------------ |
 | `object` | No       | `{"size":10240,"storageClass":null}` |
 
-### `providers[].storage.builder.size`
+### `environments[].providers[].storage.builder.size`
 
-[providers](#providers) > [storage](#providers[].storage) > [builder](#providers[].storage.builder) > size
+[environments](#environments) > [providers](#environments[].providers[]) > [storage](#environments[].providers[].storage) > [builder](#environments[].providers[].storage.builder) > size
 
 Volume size for the registry in megabytes.
 
@@ -545,9 +570,9 @@ Volume size for the registry in megabytes.
 | -------- | -------- | ------- |
 | `number` | No       | `10240` |
 
-### `providers[].storage.builder.storageClass`
+### `environments[].providers[].storage.builder.storageClass`
 
-[providers](#providers) > [storage](#providers[].storage) > [builder](#providers[].storage.builder) > storageClass
+[environments](#environments) > [providers](#environments[].providers[]) > [storage](#environments[].providers[].storage) > [builder](#environments[].providers[].storage.builder) > storageClass
 
 Storage class to use for the volume.
 
@@ -555,22 +580,17 @@ Storage class to use for the volume.
 | -------- | -------- | ------- |
 | `string` | No       | `null`  |
 
-### `providers[].storage.registry`
+### `environments[].providers[].storage.registry`
 
-[providers](#providers) > [storage](#providers[].storage) > registry
-
-Storage parameters for the in-cluster Docker registry volume. Built images are stored here, so that they
-are available to all the nodes in your cluster.
-
-Only applies when `buildMode` is set to `cluster-docker` or `kaniko`, ignored otherwise.
+[environments](#environments) > [providers](#environments[].providers[]) > [storage](#environments[].providers[].storage) > registry
 
 | Type     | Required | Default                              |
 | -------- | -------- | ------------------------------------ |
 | `object` | No       | `{"size":10240,"storageClass":null}` |
 
-### `providers[].storage.registry.size`
+### `environments[].providers[].storage.registry.size`
 
-[providers](#providers) > [storage](#providers[].storage) > [registry](#providers[].storage.registry) > size
+[environments](#environments) > [providers](#environments[].providers[]) > [storage](#environments[].providers[].storage) > [registry](#environments[].providers[].storage.registry) > size
 
 Volume size for the registry in megabytes.
 
@@ -578,9 +598,9 @@ Volume size for the registry in megabytes.
 | -------- | -------- | ------- |
 | `number` | No       | `10240` |
 
-### `providers[].storage.registry.storageClass`
+### `environments[].providers[].storage.registry.storageClass`
 
-[providers](#providers) > [storage](#providers[].storage) > [registry](#providers[].storage.registry) > storageClass
+[environments](#environments) > [providers](#environments[].providers[]) > [storage](#environments[].providers[].storage) > [registry](#environments[].providers[].storage.registry) > storageClass
 
 Storage class to use for the volume.
 
@@ -588,22 +608,17 @@ Storage class to use for the volume.
 | -------- | -------- | ------- |
 | `string` | No       | `null`  |
 
-### `providers[].storage.sync`
+### `environments[].providers[].storage.sync`
 
-[providers](#providers) > [storage](#providers[].storage) > sync
-
-Storage parameters for the code sync volume, which build contexts are synced to ahead of running
-in-cluster builds.
-
-Only applies when `buildMode` is set to `cluster-docker` or `kaniko`, ignored otherwise.
+[environments](#environments) > [providers](#environments[].providers[]) > [storage](#environments[].providers[].storage) > sync
 
 | Type     | Required | Default                              |
 | -------- | -------- | ------------------------------------ |
 | `object` | No       | `{"size":10240,"storageClass":null}` |
 
-### `providers[].storage.sync.size`
+### `environments[].providers[].storage.sync.size`
 
-[providers](#providers) > [storage](#providers[].storage) > [sync](#providers[].storage.sync) > size
+[environments](#environments) > [providers](#environments[].providers[]) > [storage](#environments[].providers[].storage) > [sync](#environments[].providers[].storage.sync) > size
 
 Volume size for the registry in megabytes.
 
@@ -611,9 +626,9 @@ Volume size for the registry in megabytes.
 | -------- | -------- | ------- |
 | `number` | No       | `10240` |
 
-### `providers[].storage.sync.storageClass`
+### `environments[].providers[].storage.sync.storageClass`
 
-[providers](#providers) > [storage](#providers[].storage) > [sync](#providers[].storage.sync) > storageClass
+[environments](#environments) > [providers](#environments[].providers[]) > [storage](#environments[].providers[].storage) > [sync](#environments[].providers[].storage.sync) > storageClass
 
 Storage class to use for the volume.
 
@@ -621,9 +636,9 @@ Storage class to use for the volume.
 | -------- | -------- | ------- |
 | `string` | No       | `null`  |
 
-### `providers[].tlsCertificates[]`
+### `environments[].providers[].tlsCertificates[]`
 
-[providers](#providers) > tlsCertificates
+[environments](#environments) > [providers](#environments[].providers[]) > tlsCertificates
 
 One or more certificates to use for ingress.
 
@@ -631,9 +646,9 @@ One or more certificates to use for ingress.
 | --------------- | -------- | ------- |
 | `array[object]` | No       | `[]`    |
 
-### `providers[].tlsCertificates[].name`
+### `environments[].providers[].tlsCertificates[].name`
 
-[providers](#providers) > [tlsCertificates](#providers[].tlscertificates[]) > name
+[environments](#environments) > [providers](#environments[].providers[]) > [tlsCertificates](#environments[].providers[].tlscertificates[]) > name
 
 A unique identifier for this certificate.
 
@@ -644,14 +659,15 @@ A unique identifier for this certificate.
 Example:
 
 ```yaml
-providers:
-  - tlsCertificates:
-      - name: "wildcard"
+environments:
+  - providers:
+      - tlsCertificates:
+          - name: "wildcard"
 ```
 
-### `providers[].tlsCertificates[].hostnames[]`
+### `environments[].providers[].tlsCertificates[].hostnames[]`
 
-[providers](#providers) > [tlsCertificates](#providers[].tlscertificates[]) > hostnames
+[environments](#environments) > [providers](#environments[].providers[]) > [tlsCertificates](#environments[].providers[].tlscertificates[]) > hostnames
 
 A list of hostnames that this certificate should be used for. If you don't specify these, they will be automatically read from the certificate.
 
@@ -662,15 +678,16 @@ A list of hostnames that this certificate should be used for. If you don't speci
 Example:
 
 ```yaml
-providers:
-  - tlsCertificates:
-      - hostnames:
-        - www.mydomain.com
+environments:
+  - providers:
+      - tlsCertificates:
+          - hostnames:
+            - www.mydomain.com
 ```
 
-### `providers[].tlsCertificates[].secretRef`
+### `environments[].providers[].tlsCertificates[].secretRef`
 
-[providers](#providers) > [tlsCertificates](#providers[].tlscertificates[]) > secretRef
+[environments](#environments) > [providers](#environments[].providers[]) > [tlsCertificates](#environments[].providers[].tlscertificates[]) > secretRef
 
 A reference to the Kubernetes secret that contains the TLS certificate and key for the domain.
 
@@ -681,16 +698,17 @@ A reference to the Kubernetes secret that contains the TLS certificate and key f
 Example:
 
 ```yaml
-providers:
-  - tlsCertificates:
-      - secretRef:
-        name: my-tls-secret
-        namespace: default
+environments:
+  - providers:
+      - tlsCertificates:
+          - secretRef:
+            name: my-tls-secret
+            namespace: default
 ```
 
-### `providers[].tlsCertificates[].secretRef.name`
+### `environments[].providers[].tlsCertificates[].secretRef.name`
 
-[providers](#providers) > [tlsCertificates](#providers[].tlscertificates[]) > [secretRef](#providers[].tlscertificates[].secretref) > name
+[environments](#environments) > [providers](#environments[].providers[]) > [tlsCertificates](#environments[].providers[].tlscertificates[]) > [secretRef](#environments[].providers[].tlscertificates[].secretref) > name
 
 The name of the Kubernetes secret.
 
@@ -701,18 +719,19 @@ The name of the Kubernetes secret.
 Example:
 
 ```yaml
-providers:
-  - tlsCertificates:
-      - secretRef:
-        name: my-tls-secret
-        namespace: default
-          ...
-          name: "my-secret"
+environments:
+  - providers:
+      - tlsCertificates:
+          - secretRef:
+            name: my-tls-secret
+            namespace: default
+              ...
+              name: "my-secret"
 ```
 
-### `providers[].tlsCertificates[].secretRef.namespace`
+### `environments[].providers[].tlsCertificates[].secretRef.namespace`
 
-[providers](#providers) > [tlsCertificates](#providers[].tlscertificates[]) > [secretRef](#providers[].tlscertificates[].secretref) > namespace
+[environments](#environments) > [providers](#environments[].providers[]) > [tlsCertificates](#environments[].providers[].tlscertificates[]) > [secretRef](#environments[].providers[].tlscertificates[].secretref) > namespace
 
 The namespace where the secret is stored. If necessary, the secret may be copied to the appropriate namespace before use.
 
@@ -720,9 +739,9 @@ The namespace where the secret is stored. If necessary, the secret may be copied
 | -------- | -------- | ----------- |
 | `string` | No       | `"default"` |
 
-### `providers[].name`
+### `environments[].providers[].name`
 
-[providers](#providers) > name
+[environments](#environments) > [providers](#environments[].providers[]) > name
 
 The name of the provider plugin to use.
 
@@ -733,13 +752,14 @@ The name of the provider plugin to use.
 Example:
 
 ```yaml
-providers:
-  - name: "local-kubernetes"
+environments:
+  - providers:
+      - name: "local-kubernetes"
 ```
 
-### `providers[].context`
+### `environments[].providers[].context`
 
-[providers](#providers) > context
+[environments](#environments) > [providers](#environments[].providers[]) > context
 
 The kubectl context to use to connect to the Kubernetes cluster.
 
@@ -750,13 +770,14 @@ The kubectl context to use to connect to the Kubernetes cluster.
 Example:
 
 ```yaml
-providers:
-  - context: "my-dev-context"
+environments:
+  - providers:
+      - context: "my-dev-context"
 ```
 
-### `providers[].namespace`
+### `environments[].providers[].namespace`
 
-[providers](#providers) > namespace
+[environments](#environments) > [providers](#environments[].providers[]) > namespace
 
 Specify which namespace to deploy services to (defaults to the project name). Note that the framework generates other namespaces as well with this name as a prefix.
 
@@ -764,9 +785,9 @@ Specify which namespace to deploy services to (defaults to the project name). No
 | -------- | -------- |
 | `string` | No       |
 
-### `providers[].setupIngressController`
+### `environments[].providers[].setupIngressController`
 
-[providers](#providers) > setupIngressController
+[environments](#environments) > [providers](#environments[].providers[]) > setupIngressController
 
 Set this to null or false to skip installing/enabling the `nginx` ingress controller.
 
@@ -780,55 +801,72 @@ Set this to null or false to skip installing/enabling the `nginx` ingress contro
 The values in the schema below are the default values.
 
 ```yaml
+apiVersion: garden.io/v0
+kind: Project
+name:
+defaultEnvironment: ''
+environmentDefaults:
+  providers:
+    - name:
+      environments:
+  variables: {}
 providers:
-  - environments:
-    buildMode: local-docker
-    defaultHostname:
-    defaultUsername:
-    forceSsl: false
-    imagePullSecrets:
-      - name:
-        namespace: default
-    resources:
-      builder:
-        limits:
-          cpu: 2000
-          memory: 4096
-        requests:
-          cpu: 200
-          memory: 512
-      registry:
-        limits:
-          cpu: 2000
-          memory: 4096
-        requests:
-          cpu: 200
-          memory: 512
-      sync:
-        limits:
-          cpu: 200
-          memory: 256
-        requests:
-          cpu: 100
-          memory: 64
-    storage:
-      builder:
-        size: 10240
-        storageClass: null
-      registry:
-        size: 10240
-        storageClass: null
-      sync:
-        size: 10240
-        storageClass: null
-    tlsCertificates:
-      - name:
-        hostnames:
-        secretRef:
-          name:
-          namespace: default
-    name: local-kubernetes
-    context:
-    namespace:
-    setupIngressController: nginx
+  - name:
+    environments:
+sources:
+  - name:
+    repositoryUrl:
+variables: {}
+environments:
+  - providers:
+      - environments:
+        buildMode: local
+        defaultHostname:
+        defaultUsername:
+        forceSsl: false
+        imagePullSecrets:
+          - name:
+            namespace: default
+        resources:
+          builder:
+            limits:
+              cpu: 2000
+              memory: 4096
+            requests:
+              cpu: 200
+              memory: 512
+          registry:
+            limits:
+              cpu: 2000
+              memory: 4096
+            requests:
+              cpu: 200
+              memory: 512
+          sync:
+            limits:
+              cpu: 200
+              memory: 256
+            requests:
+              cpu: 100
+              memory: 64
+        storage:
+          builder:
+            size: 10240
+            storageClass: null
+          registry:
+            size: 10240
+            storageClass: null
+          sync:
+            size: 10240
+            storageClass: null
+        tlsCertificates:
+          - name:
+            hostnames:
+            secretRef:
+              name:
+              namespace: default
+        name: local-kubernetes
+        context:
+        namespace:
+        setupIngressController: nginx
 ```
