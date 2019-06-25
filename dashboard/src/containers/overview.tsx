@@ -39,7 +39,7 @@ const Modules = styled.div`
 `
 
 export type ModuleModel = {
-  name: string;
+  name?: string;
   type: string;
   path?: string;
   repositoryUrl?: string;

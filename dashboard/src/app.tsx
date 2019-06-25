@@ -13,7 +13,7 @@ import { Route } from "react-router-dom"
 
 import Graph from "./containers/graph"
 import Logs from "./containers/logs"
-import Overview from "./containers/overview"
+import Overview from "./containers/overview-normalized"
 import Sidebar from "./containers/sidebar"
 import Provider from "./components/provider"
 
@@ -24,7 +24,6 @@ import "./styles/custom-flexboxgrid.scss"
 import "./styles/icons.scss"
 
 import { EventProvider } from "./context/events"
-import { DataProvider } from "./context/data"
 import { NavLink } from "./components/links"
 
 import logo from "./assets/logo.png"
@@ -32,7 +31,7 @@ import { ReactComponent as OpenSidebarIcon } from "./assets/open-pane.svg"
 import { ReactComponent as CloseSidebarIcon } from "./assets/close-pane.svg"
 
 import { UiStateProvider, UiStateContext } from "./context/ui"
-import { NormalizedDataProvider, NormalizedDataContext } from "./context/normalized-data"
+import { DataProvider, DataContext } from "./context/data-normalized"
 
 // Style and align properly
 const Logo = styled.img`
@@ -65,49 +64,75 @@ const SidebarToggleButton = styled.div`
   font-size: 1.125rem;
 `
 
+const AppContainer = () => {
+  return (
+    <div>
+      <DataProvider>
+        <EventProvider>
+          <UiStateProvider>
+            <App />
+          </UiStateProvider>
+        </EventProvider>
+      </DataProvider>
+    </div>
+  )
+}
+
+// // Commented out the main AppContainer to test the new normalized data provider.
 // const AppContainer = () => {
 //   return (
 //     <div>
-//       <DataProvider>
-//         <EventProvider>
-//           <UiStateProvider>
-//             <App />
-//           </UiStateProvider>
-//         </EventProvider>
-//       </DataProvider>
+//       <NormalizedDataProvider>
+//         <TestLogs />
+//         <TestStatus />
+//       </NormalizedDataProvider>
 //     </div>
 //   )
 // }
 
-// Commented out the main AppContainer to test the new normalized data provider.
-const AppContainer = () => {
+// Test component for logging responses from the normalized data provider.
+const TestLogs = () => {
+  const {
+    store: { entities: {logs}, requestStates: requestState },
+    actions: { loadConfig, loadLogs },
+  } = useContext(DataContext)
+
+  useEffect(() => { loadConfig() }, [])
+
+  const handleLoadLogs = () => loadLogs(["api"])
+  // todo: add force and see if the store changes and cause rendering
+
+  console.log(logs, requestState)
+
   return (
     <div>
-      <NormalizedDataProvider>
-        <Test />
-      </NormalizedDataProvider>
+      <p>Hello world</p>
+      <button onClick={handleLoadLogs}>
+        Load Logs
+      </button>
     </div>
   )
 }
 
 // Test component for logging responses from the normalized data provider.
-const Test = () => {
+const TestStatus = () => {
   const {
-    store: { entities: data, requestStates: requestState },
-    actions: { loadConfig, loadLogs },
-  } = useContext(NormalizedDataContext)
+    store: { entities: {modules, services}, requestStates: requestState },
+    actions: { loadConfig, loadStatus },
+  } = useContext(DataContext)
 
   useEffect(() => { loadConfig() }, [])
 
-  const logs = () => loadLogs(["backend", "frontend"])
+  const handleLoadStatus = () => loadStatus()
+  // todo: add force and see if the store changes and cause rendering
 
-  console.log(data, requestState)
+  console.log(modules, services, requestState)
 
   return (
     <div>
       <p>Hello world</p>
-      <button onClick={logs}>
-        Load Logs
+      <button onClick={handleLoadStatus}>
+        Load Status
       </button>
     </div>
   )

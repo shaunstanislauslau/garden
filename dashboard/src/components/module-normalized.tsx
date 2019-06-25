@@ -10,11 +10,11 @@ import React, { useState, useContext } from "react"
 import styled from "@emotion/styled"
 import { css } from "emotion"
 import moment from "moment"
-import { ModuleModel } from "../containers/overview"
+import { Module as ModuleModel } from "../containers/overview-normalized"
 import EntityCard from "./entity-card"
 import { UiStateContext } from "../context/ui"
-import Ingresses from "./ingresses"
 import { TertiaryButton } from "./button"
+import { ServiceCard } from "./service-card"
 
 const Module = styled.div`
   padding: 1.2rem;
@@ -51,7 +51,7 @@ const EntityCards = styled.div<EntityCardsProps>`
 type FieldsProps = {
   visible: boolean,
 }
-const Fields = styled.div<FieldsProps>`
+export const Fields = styled.div<FieldsProps>`
   display: ${props => (props.visible ? `block` : "none")};
   animation: fadein .5s;
   @keyframes fadein {
@@ -91,7 +91,7 @@ type FieldProps = {
   inline?: boolean,
   visible: boolean,
 }
-const Field = styled.div<FieldProps>`
+export const Field = styled.div<FieldProps>`
   display: ${props => (props.visible ? (props.inline ? "flex" : "block") : "none")};
   flex-direction: row;
 `
@@ -99,13 +99,13 @@ const Field = styled.div<FieldProps>`
 type FieldGroupProps = {
   visible: boolean,
 }
-const FieldGroup = styled.div<FieldGroupProps>`
+export const FieldGroup = styled.div<FieldGroupProps>`
   display: ${props => (props.visible ? "flex" : "none")};
   flex-direction: row;
   padding-top: .25rem;
 `
 
-const Key = styled.div`
+export const Key = styled.div`
   padding-right: .25rem;
   font-size: 0.8125rem;
   line-height: 1.1875rem;
@@ -114,7 +114,7 @@ const Key = styled.div`
   opacity: 0.5;
 `
 
-const Value = styled.div`
+export const Value = styled.div`
   padding-right: .5rem;
   font-size: 0.8125rem;
   line-height: 1.1875rem;
@@ -141,9 +141,11 @@ const Short = styled(Value)`
 
 interface ModuleProp {
   module: ModuleModel
+  isLoadingEntities: boolean
 }
 export default ({
   module: { services = [], tests = [], tasks = [], name, type, description },
+  isLoadingEntities,
 }: ModuleProp) => {
   const {
     state: { overview: { filters } },
@@ -190,25 +192,23 @@ export default ({
       </Fields>
       <EntityCards visible={filters.services && services.length > 0}>
         {services.map(service => (
-          <EntityCard
+          <ServiceCard
             key={service.name}
-            entity={service}
-            type={"service"}
-          >
-            <Fields visible={filters.servicesInfo}>
-              <Field inline visible={service.dependencies.length > 0}>
-                <Key>Depends on:</Key>
-                <Value>{service.dependencies.join(", ")}</Value>
-              </Field>
-              <Field visible={!!service.ingresses && service.ingresses.length > 0}>
-                <Ingresses ingresses={service.ingresses} />
-              </Field>
-            </Fields>
-          </EntityCard>
+            service={service}
+            showInfo={filters.servicesInfo}
+            isLoading={isLoadingEntities}
+          />
+          // <EntityCard
+          //   key={service.name}
+          //   entity={service}
+          //   type={"service"}
+          // >
+
+          // </EntityCard>
         ))}
       </EntityCards>
       <EntityCards visible={filters.tests && tests.length > 0}>
-        {tests.map(test => (
+        {/* {tests.map(test => (
           <EntityCard
             key={test.name}
             entity={test}
@@ -234,56 +234,27 @@ export default ({
               </FieldGroup>
               <div className="row">
                 <div className="col-xs">
-                  {/* <ShowResultButton
+                  <ShowResultButton
                     entityType="test"
                     moduleName={name}
                     entityName={test.name}
                     onClick={handleSelectEntity}
-                  /> */}
+                  />
                 </div>
               </div>
             </Fields>
           </EntityCard>
-        ))}
+        ))} */}
       </EntityCards>
       <EntityCards visible={filters.tasks && tasks.length > 0}>
-        {tasks.map(task => (
+        {/* {tasks.map(task => (
+
           <EntityCard
             key={task.name}
             entity={task}
             type={"task"}
-          >
-            <Fields visible={filters.tasksInfo}>
-              <Field inline visible={task.dependencies.length > 0}>
-                <Key>Depends on:</Key>
-                <Value>{task.dependencies.join(", ")}</Value>
-              </Field>
-              <FieldGroup
-                className="row between-xs middle-xs"
-                visible={!!task.startedAt}
-              >
-                <Field inline className="col-xs" visible={!!task.startedAt}>
-                  <Key>Ran:</Key>
-                  <Value>{moment(task.startedAt).fromNow()}</Value>
-                </Field>
-                <Field inline visible={task.state === "succeeded"}>
-                  <Key>Took:</Key>
-                  <Value>{task.duration}</Value>
-                </Field>
-              </FieldGroup>
-              <div className="row">
-                <div className="col-xs">
-                  {/* <ShowResultButton
-                    entityType="task"
-                    moduleName={name}
-                    entityName={task.name}
-                    onClick={handleSelectEntity}
-                  /> */}
-                </div>
-              </div>
-            </Fields>
-          </EntityCard>
-        ))}
+          />
+        ))} */}
       </EntityCards>
     </Module>
   )
@@ -295,7 +266,7 @@ const ShowResultButton = ({
   moduleName,
   onClick,
 }: {
-  entityName: string | undefined,
+  entityName: string,
   entityType: "test" | "task",
   moduleName: string,
   onClick,

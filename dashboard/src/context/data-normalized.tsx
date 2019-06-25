@@ -17,16 +17,17 @@ import {
   FetchTaskResultParam,
   FetchTestResultParam,
   fetchLogs,
+  fetchStatus,
 } from "../api/api"
 import { ServiceLogEntry } from "garden-cli/src/types/plugin/service/getServiceLogs"
 import { GraphOutput } from "garden-cli/src/commands/get/get-graph"
 import { AxiosError } from "axios"
 import { SupportedEventName } from "./events"
-import { ServiceState } from "garden-cli/src/types/service"
+import { ServiceStatus } from "garden-cli/src/types/service"
 import { ModuleConfig } from "garden-cli/src/config/module"
 import { Omit, PickFromUnion } from "garden-cli/src/util/util"
 import { ServiceConfig } from "garden-cli/src/config/service"
-import { RunState } from "garden-cli/src/commands/get/get-status"
+import { RunStatus, StatusCommandResult } from "garden-cli/src/commands/get/get-status"
 import { ConfigDump } from "garden-cli/src/garden"
 import { TaskConfig } from "garden-cli/src/config/task"
 import { TaskResultOutput } from "garden-cli/src/commands/get/get-task-result"
@@ -37,30 +38,30 @@ export type TaskState = PickFromUnion<
   SupportedEventName, "taskComplete" | "taskError" | "taskPending" | "taskProcessing"
 >
 
-interface TestEntity {
-  result: TestResultOutput,
+export interface TestEntity {
   config: TestConfig,
+  status: RunStatus,
+  result: TestResultOutput,
   taskState: TaskState,
-  status: RunState,
 }
 
-interface TaskEntity {
-  result: TaskResultOutput,
+export interface TaskEntity {
   config: TaskConfig,
+  status: RunStatus,
+  result: TaskResultOutput,
   taskState: TaskState,
-  status: RunState,
 }
 
-type ModuleEntity = Omit<Partial<ModuleConfig>, "serviceConfigs" | "testConfigs" | "taskConfigs"> & {
+export type ModuleEntity = Omit<Partial<ModuleConfig>, "serviceConfigs" | "testConfigs" | "taskConfigs"> & {
   services: string[],
   tasks: string[],
   tests: string[],
   taskState: TaskState,
 }
 
-interface ServiceEntity {
+export interface ServiceEntity {
   config: ServiceConfig,
-  state?: ServiceState,
+  status: ServiceStatus,
   taskState: TaskState,
 }
 
@@ -70,14 +71,15 @@ interface RequestState {
 }
 
 interface Store {
+  projectRoot?: string,
   entities: {
     modules?: { [moduleName: string]: ModuleEntity }
     services?: { [serviceName: string]: ServiceEntity }
-    wstest?: any
-    graph?: GraphOutput
     tasks?: { [taskId: string]: TaskEntity }
     tests?: { [serviceId: string]: TestEntity }
-    logs?: { [serviceName: string]: ServiceLogEntry[] },
+    logs?: { [serviceName: string]: ServiceLogEntry[] }
+    wstest?: any
+    graph?: GraphOutput,
   },
   // TODO: Add all the requests
   requestStates: {
@@ -137,6 +139,7 @@ type Loader = (force?: boolean) => void
 interface Actions {
   loadLogs: LoadLogs
   loadConfig: Loader
+  loadStatus: Loader
 }
 
 const initialRequestState = requestKeys.reduce((acc, key) => {
@@ -152,23 +155,20 @@ const initialState: Store = {
 /**
  * The reducer for the useApi hook. Sets the state for a given slice of the store on fetch events.
  */
-function reducer(store: Store, action: Action) {
+function reducer(store: Store, action: Action): Store {
   switch (action.type) {
     case "fetchStart":
       return produce(store, storeDraft => {
         storeDraft.requestStates[action.requestKey].loading = true
-        return storeDraft
       })
     case "fetchSuccess":
       return produce(action.store, storeDraft => {
         storeDraft.requestStates[action.requestKey].loading = false
-        return storeDraft
       })
     case "fetchFailure":
       return produce(store, storeDraft => {
         storeDraft.requestStates[action.requestKey].loading = false
         storeDraft.requestStates[action.requestKey].error = action.error
-        return storeDraft
       })
     case "wsMessageReceived":
       // Note: We have to do the processing here instead of passing the store as in the cases above.
@@ -182,9 +182,13 @@ function reducer(store: Store, action: Action) {
         // Here we're just updating the state with some pseudo value for testing purposes.
         if (storeDraft.entities.services) {
           const firstService = Object.keys(storeDraft.entities.services)[0]
-          storeDraft.entities.services[firstService].state = "deploying"
+          storeDraft.entities.services[firstService] =
+            storeDraft.entities.services[firstService] || { status: { state: "deploying" } }
         }
-        return storeDraft
+        // if (storeDraft.entities.logs) {
+        //   const firstLog = Object.keys(storeDraft.entities.logs)[0]
+        //   storeDraft.entities.logs[firstLog] = []
+        // }
       })
   }
 }
@@ -202,19 +206,21 @@ function processConfig(store: Store, config: ConfigDump) {
       repositoryUrl: cfg.repositoryUrl,
       description: cfg.description,
       services: cfg.serviceConfigs.map(service => service.name),
-      tests: cfg.serviceConfigs.map(test => test.name),
+      tests: cfg.testConfigs.map(test => test.name),
       tasks: cfg.taskConfigs.map(task => task.name),
       taskState: currentModule && currentModule.taskState || "taskPending",
     }
     modules[cfg.name] = module
     for (const serviceConfig of cfg.serviceConfigs) {
-      services[serviceConfig.name] = serviceConfig
+      services[serviceConfig.name] = services[serviceConfig.name] || {}
+      services[serviceConfig.name].config = serviceConfig
     }
   }
 
   return produce(store, storeDraft => {
     storeDraft.entities.modules = modules
     storeDraft.entities.services = services
+    storeDraft.projectRoot = config.projectRoot
     return storeDraft
   })
 }
@@ -223,7 +229,29 @@ function processConfig(store: Store, config: ConfigDump) {
 function processLogs(store: Store, logs: ServiceLogEntry[]) {
   return produce(store, storeDraft => {
     storeDraft.entities.logs = groupBy(logs, "serviceName")
-    return storeDraft
+  })
+}
+
+// Process the status response and return a normalized store
+function processStatus(store: Store, status: StatusCommandResult) {
+  debugger
+  return produce(store, storeDraft => {
+    storeDraft.entities.services = storeDraft.entities.services || {}
+    storeDraft.entities.tests = storeDraft.entities.tests || {}
+    storeDraft.entities.tasks = storeDraft.entities.tasks || {}
+    
+    for (const serviceName of Object.keys(status.services)) {
+      storeDraft.entities.services[serviceName].status =
+        status.services[serviceName]
+    }
+    for (const testName of Object.keys(status.tests)) {
+      storeDraft.entities.tests[testName].status =
+        status.tests[testName]
+    }
+    for (const taskName of Object.keys(status.tasks)) {
+      storeDraft.entities.tasks[taskName].status =
+        status.tasks[taskName]
+    }
   })
 }
 
@@ -278,13 +306,30 @@ function useApi(store: Store, dispatch: React.Dispatch<Action>) {
     dispatch({ store: processLogs(store, res), type: "fetchSuccess", requestKey })
   }
 
+  const loadStatus = async (force: boolean = false) => {
+    if (!force && store.entities.logs) {
+      return
+    }
+
+    const requestKey = "fetchStatus"
+    dispatch({ requestKey, type: "fetchStart" })
+
+    let res: StatusCommandResult
+    try {
+      res = await fetchStatus()
+    } catch (error) {
+      dispatch({ requestKey, type: "fetchFailure", error })
+      return
+    }
+
+    dispatch({ store: processStatus(store, res), type: "fetchSuccess", requestKey })
+  }
+
   // For setting up the ws connection
   useEffect(() => {
     // This is just test code, replace with actual ws connection
     (async () => {
-      await sleep(2500)
-      dispatch({ type: "wsMessageReceived" })
-
+      setInterval(() => dispatch({ type: "wsMessageReceived" }), 5000)
     })().catch(() => { })
   }, [])
 
@@ -292,6 +337,7 @@ function useApi(store: Store, dispatch: React.Dispatch<Action>) {
     store,
     actions: {
       loadConfig,
+      loadStatus,
       loadLogs,
     },
   }
@@ -299,19 +345,20 @@ function useApi(store: Store, dispatch: React.Dispatch<Action>) {
 
 // We type cast the initial value to avoid having to check whether the context exists in every context consumer.
 // Context is only undefined if the provider is missing which we assume is not the case.
-export const NormalizedDataContext = React.createContext<Context>({} as Context)
+export const DataContext = React.createContext<Context>({} as Context)
 
 /**
  * This component manages the "rest" API data state (not the websockets) for the entire application.
  * We use the new React Hooks API to pass store data and actions down the component tree.
  */
-export const NormalizedDataProvider: React.FC = ({ children }) => {
+export const DataProvider: React.FC = ({ children }) => {
   const [store, dispatch] = useReducer(reducer, initialState)
 
   const storeAndActions = useApi(store, dispatch)
+  console.log("data-normalized", storeAndActions)
   return (
-    <NormalizedDataContext.Provider value={storeAndActions}>
+    <DataContext.Provider value={storeAndActions}>
       {children}
-    </NormalizedDataContext.Provider>
+    </DataContext.Provider>
   )
 }
