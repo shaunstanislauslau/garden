@@ -10,6 +10,7 @@ import { useReducer, useEffect } from "react"
 import React from "react"
 import { groupBy } from "lodash"
 import produce from "immer"
+import {merge} from "lodash"
 
 import {
   fetchConfig,
@@ -156,20 +157,24 @@ const initialState: Store = {
  * The reducer for the useApi hook. Sets the state for a given slice of the store on fetch events.
  */
 function reducer(store: Store, action: Action): Store {
+  let updatedStore: Store = store
   switch (action.type) {
     case "fetchStart":
-      return produce(store, storeDraft => {
+      updatedStore = produce(store, storeDraft => {
         storeDraft.requestStates[action.requestKey].loading = true
       })
+      break
     case "fetchSuccess":
-      return produce(action.store, storeDraft => {
+      updatedStore = produce(merge(updatedStore, action.store), storeDraft => {
         storeDraft.requestStates[action.requestKey].loading = false
       })
+      break
     case "fetchFailure":
-      return produce(store, storeDraft => {
+      updatedStore = produce(store, storeDraft => {
         storeDraft.requestStates[action.requestKey].loading = false
         storeDraft.requestStates[action.requestKey].error = action.error
       })
+      break
     case "wsMessageReceived":
       // Note: We have to do the processing here instead of passing the store as in the cases above.
       // This is because the ws functionality is wrapped in a useEffect() call and therefore will have
@@ -178,7 +183,7 @@ function reducer(store: Store, action: Action): Store {
       // We could consider to never pass the store in action.store but rather pass the processor function.
       // Something like: action.processer = processLogs. Then the reducer would call that with they response.
       // Something like: newStore = action.processor(action.res) or similiar. Not sure what's most clean.
-      return produce(store, storeDraft => {
+      updatedStore = produce(store, storeDraft => {
         // Here we're just updating the state with some pseudo value for testing purposes.
         if (storeDraft.entities.services) {
           const firstService = Object.keys(storeDraft.entities.services)[0]
@@ -190,15 +195,22 @@ function reducer(store: Store, action: Action): Store {
         //   storeDraft.entities.logs[firstLog] = []
         // }
       })
+
+      break
   }
+
+  return updatedStore
 }
 
 // Process the get-config response and return a normalized store
 function processConfig(store: Store, config: ConfigDump) {
   let modules = {}
   let services = {}
+  let tests = {}
+  let tasks = {}
+
   for (const cfg of config.moduleConfigs) {
-    const currentModule = store.entities.modules && store.entities.modules[cfg.name]
+
     const module: ModuleEntity = {
       name: cfg.name,
       type: cfg.type,
@@ -206,23 +218,35 @@ function processConfig(store: Store, config: ConfigDump) {
       repositoryUrl: cfg.repositoryUrl,
       description: cfg.description,
       services: cfg.serviceConfigs.map(service => service.name),
-      tests: cfg.testConfigs.map(test => test.name),
+      tests: cfg.testConfigs.map(test => `${cfg.name}.${test.name}`),
       tasks: cfg.taskConfigs.map(task => task.name),
-      taskState: currentModule && currentModule.taskState || "taskPending",
+      taskState: "taskPending", // TODO Ben: need to see what initial state to put
     }
     modules[cfg.name] = module
     for (const serviceConfig of cfg.serviceConfigs) {
       services[serviceConfig.name] = services[serviceConfig.name] || {}
       services[serviceConfig.name].config = serviceConfig
     }
+    for (const testConfig of cfg.testConfigs) {
+      const testKey = `${cfg.name}.${testConfig.name}`
+      tests[testKey] = tests[testKey] || {}
+      tests[testKey].config = testConfig
+    }
+    for (const taskConfig of cfg.taskConfigs) {
+      tasks[taskConfig.name] = tasks[taskConfig.name] || {}
+      tasks[taskConfig.name].config = taskConfig
+    }
   }
 
-  return produce(store, storeDraft => {
+  const processedStore = produce(store, storeDraft => {
     storeDraft.entities.modules = modules
     storeDraft.entities.services = services
+    storeDraft.entities.tests = tests
+    storeDraft.entities.tasks = tasks
     storeDraft.projectRoot = config.projectRoot
-    return storeDraft
   })
+
+  return processedStore
 }
 
 // Process the logs response and return a normalized store
@@ -234,25 +258,39 @@ function processLogs(store: Store, logs: ServiceLogEntry[]) {
 
 // Process the status response and return a normalized store
 function processStatus(store: Store, status: StatusCommandResult) {
-  debugger
-  return produce(store, storeDraft => {
+
+  const processedStore = produce(store, storeDraft => {
+    // if (!storeDraft.entities ||
+    //   !storeDraft.entities.services ||
+    //   !storeDraft.entities.tests ||
+    //   !storeDraft.entities.tasks) {
+    //   return
+    // }
     storeDraft.entities.services = storeDraft.entities.services || {}
     storeDraft.entities.tests = storeDraft.entities.tests || {}
     storeDraft.entities.tasks = storeDraft.entities.tasks || {}
-    
+
     for (const serviceName of Object.keys(status.services)) {
+      storeDraft.entities.services[serviceName] =
+        storeDraft.entities.services[serviceName] || {}
       storeDraft.entities.services[serviceName].status =
         status.services[serviceName]
     }
     for (const testName of Object.keys(status.tests)) {
+      storeDraft.entities.tests[testName] =
+        storeDraft.entities.tests[testName] || {}
       storeDraft.entities.tests[testName].status =
         status.tests[testName]
     }
     for (const taskName of Object.keys(status.tasks)) {
+      storeDraft.entities.tasks[taskName] =
+        storeDraft.entities.tasks[taskName] || {}
       storeDraft.entities.tasks[taskName].status =
         status.tasks[taskName]
     }
   })
+
+  return processedStore
 }
 
 export async function sleep(msec) {
@@ -268,6 +306,7 @@ export async function sleep(msec) {
  * dispatch to that hook.
  */
 function useApi(store: Store, dispatch: React.Dispatch<Action>) {
+
   const loadConfig: Loader = async (force: boolean = false) => {
     if (!force && store.entities.modules) {
       return
@@ -275,7 +314,6 @@ function useApi(store: Store, dispatch: React.Dispatch<Action>) {
 
     const requestKey = "fetchConfig"
     dispatch({ requestKey, type: "fetchStart" })
-
     let res: ConfigDump
     try {
       res = await fetchConfig()
@@ -284,7 +322,11 @@ function useApi(store: Store, dispatch: React.Dispatch<Action>) {
       return
     }
 
-    dispatch({ store: processConfig(store, res), type: "fetchSuccess", requestKey })
+    // TODO: find a better way to share the update the entities in the middle of status request
+    const processedStore =processConfig(store, res)
+    // store.entities = processedStore.entities
+    // store.projectRoot = processedStore.projectRoot
+    dispatch({ store: processedStore, type: "fetchSuccess", requestKey })
   }
 
   const loadLogs = async (serviceNames: string[], force: boolean = false) => {
@@ -293,8 +335,6 @@ function useApi(store: Store, dispatch: React.Dispatch<Action>) {
     }
 
     const requestKey = "fetchLogs"
-    dispatch({ requestKey, type: "fetchStart" })
-
     let res: ServiceLogEntry[]
     try {
       res = await fetchLogs(serviceNames)
@@ -306,8 +346,9 @@ function useApi(store: Store, dispatch: React.Dispatch<Action>) {
     dispatch({ store: processLogs(store, res), type: "fetchSuccess", requestKey })
   }
 
-  const loadStatus = async (force: boolean = false) => {
-    if (!force && store.entities.logs) {
+  const loadStatus: Loader = async (force: boolean = false) => {
+    // todo ben - implement return in case of status already fetched
+    if (!force && store.entities.modules) {
       return
     }
 
@@ -325,13 +366,13 @@ function useApi(store: Store, dispatch: React.Dispatch<Action>) {
     dispatch({ store: processStatus(store, res), type: "fetchSuccess", requestKey })
   }
 
-  // For setting up the ws connection
-  useEffect(() => {
-    // This is just test code, replace with actual ws connection
-    (async () => {
-      setInterval(() => dispatch({ type: "wsMessageReceived" }), 5000)
-    })().catch(() => { })
-  }, [])
+  // // For setting up the ws connection
+  // useEffect(() => {
+  //   // This is just test code, replace with actual ws connection
+  //   (async () => {
+  //     setInterval(() => dispatch({ type: "wsMessageReceived" }), 5000)
+  //   })().catch(() => { })
+  // }, [])
 
   return {
     store,
@@ -353,7 +394,6 @@ export const DataContext = React.createContext<Context>({} as Context)
  */
 export const DataProvider: React.FC = ({ children }) => {
   const [store, dispatch] = useReducer(reducer, initialState)
-
   const storeAndActions = useApi(store, dispatch)
   console.log("data-normalized", storeAndActions)
   return (

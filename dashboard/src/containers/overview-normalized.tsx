@@ -122,7 +122,8 @@ export default () => {
     },
     actions: { loadConfig, loadStatus },
   } = useContext(DataContext)
-
+  console.log("fetchStatus.loading", fetchStatus.loading)
+  console.log("fetchConfig.loading", fetchConfig.loading)
   const {
     state: {
       overview: { selectedIngress, selectedEntity },
@@ -151,13 +152,16 @@ export default () => {
       .values(modules)
       .reduce((modulesHierarchical: Module[], moduleEntity: ModuleEntity) => {
 
+        // const moduleServiceEntities: ServiceEntity[] = services &&
+        //   moduleEntity.services.reduce((acc: ServiceEntity[], curr: string) => ([...acc, services[curr]]), []) || []
         const moduleServiceEntities: ServiceEntity[] = services &&
-          moduleEntity.services.reduce((acc: ServiceEntity[], curr: string) => ([...acc, services[curr]]), []) || []
+          moduleEntity.services.map(serviceKey => services[serviceKey]) || []
         const moduleTestEntities: TestEntity[] = tests &&
-          moduleEntity.tests.reduce((acc: TestEntity[], curr: string) => ([...acc, tests[curr]]), []) || []
+          moduleEntity.tests.map(testKey => tests[testKey]) || []
+        // const moduleTaskEntities: TaskEntity[] = tasks &&
+        // moduleEntity.tasks.reduce((acc: TaskEntity[], curr: string) => ([...acc, tasks[curr]]), []) || []
         const moduleTaskEntities: TaskEntity[] = tasks &&
-          moduleEntity.tasks.reduce((acc: TaskEntity[], curr: string) => ([...acc, tasks[curr]]), []) || []
-
+          moduleEntity.tasks.map(taskKey => tasks[taskKey]) || []
         return [
           ...modulesHierarchical,
           {
@@ -185,7 +189,8 @@ export default () => {
                 <Module
                   module={module}
                   key={module.name}
-                  isLoadingEntities={fetchStatus.loading} />
+                  isLoadingEntities={fetchStatus.loading}
+                />
               ))}
             </Modules>
           </div>
