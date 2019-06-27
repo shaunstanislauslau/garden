@@ -13,11 +13,10 @@ import { colors } from "../styles/variables"
 import { Facebook as ContentLoader } from "react-content-loader"
 import { Fields, Field, Key, Value, FieldGroup } from "./module-normalized"
 import Ingresses from "./ingresses"
-import { ServiceEntity, TaskEntity } from "../context/data-normalized"
 import { getDuration } from "../util/helpers"
 import { TertiaryButton } from "./button"
 import { css } from "emotion"
-import { Service } from "../containers/overview-normalized";
+import { Service, Test, Task } from "../containers/overview-normalized"
 
 const Card = styled.div`
   max-height: 13rem;
@@ -140,23 +139,20 @@ export const ServiceCard = ({
 }
 
 interface TaskCardProp {
-  task: TaskEntity,
+  task: Task,
   isLoading: boolean,
   showInfo: boolean,
 }
 
 export const TaskCard = ({
   task: {
-    config: {
-      name,
-      dependencies,
-    },
-    status: { state, startedAt, completedAt },
+    name,
+    dependencies,
+    state, startedAt, completedAt,
   },
   isLoading,
   showInfo,
 }: TaskCardProp) => {
-  console.log("loadingService", isLoading)
   const duration = startedAt &&
     completedAt &&
     getDuration(startedAt, completedAt)
@@ -203,6 +199,80 @@ export const TaskCard = ({
               <div className="col-xs">
                 {/* <ShowResultButton
                   entityType="task"
+                  moduleName={name}
+                  entityName={name}
+                  onClick={handleSelectEntity}
+                /> */}
+              </div>
+            </div>
+          </Fields>
+        )}
+      </Content>
+    </Card>
+  )
+}
+
+interface TestCardProp {
+  test: Test,
+  isLoading: boolean,
+  showInfo: boolean,
+}
+
+export const TestCard = ({
+  test: {
+    name,
+    dependencies,
+    state, startedAt, completedAt,
+  },
+  isLoading,
+  showInfo,
+}: TestCardProp) => {
+  const duration = startedAt &&
+    completedAt &&
+    getDuration(startedAt, completedAt)
+
+  // todo: handleSelectEntity
+  //todo: get and pass moduleName
+  return (
+    <Card>
+      <Header>
+        <div>
+          <Tag>TEST</Tag>
+          <Name>{name}</Name>
+        </div>
+        {state && (
+          <StateContainer state={state}>
+            {state}
+          </StateContainer>
+        )}
+      </Header>
+      <Content>
+        {isLoading && (
+          <ContentLoader height={100} />
+        )}
+        {!isLoading && (
+          <Fields visible={showInfo}>
+            <Field inline visible={dependencies.length > 0}>
+              <Key>Depends on:</Key>
+              <Value>{dependencies.join(", ")}</Value>
+            </Field>
+            <FieldGroup
+              className="row between-xs middle-xs"
+              visible={!!startedAt}
+            >
+              <Field inline className="col-xs" visible={!!startedAt}>
+                <Key>Ran:</Key>
+                <Value>{moment(startedAt).fromNow()}</Value>
+              </Field>
+              <Field inline visible={state === "succeeded"}>
+                <Key>Took:</Key>
+                <Value>{duration}</Value>
+              </Field>
+            </FieldGroup>
+            <div className="row">
+              <div className="col-xs">
+                {/* <ShowResultButton
+                  entityType="test"
                   moduleName={name}
                   entityName={name}
                   onClick={handleSelectEntity}

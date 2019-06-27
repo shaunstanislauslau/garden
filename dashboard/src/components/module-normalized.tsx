@@ -9,12 +9,10 @@
 import React, { useState, useContext } from "react"
 import styled from "@emotion/styled"
 import { css } from "emotion"
-import moment from "moment"
 import { Module as ModuleModel } from "../containers/overview-normalized"
-import EntityCard from "./entity-card"
 import { UiStateContext } from "../context/ui"
 import { TertiaryButton } from "./button"
-import { ServiceCard } from "./service-card"
+import { ServiceCard, TestCard, TaskCard } from "./service-card"
 
 const Module = styled.div`
   padding: 1.2rem;
@@ -198,63 +196,27 @@ export default ({
             showInfo={filters.servicesInfo}
             isLoading={isLoadingEntities}
           />
-          // <EntityCard
-          //   key={service.name}
-          //   entity={service}
-          //   type={"service"}
-          // >
-
-          // </EntityCard>
         ))}
       </EntityCards>
       <EntityCards visible={filters.tests && tests.length > 0}>
-        {/* {tests.map(test => (
-          <EntityCard
+        {tests.map(test => (
+          <TestCard
             key={test.name}
-            entity={test}
-            type={"test"}
-          >
-            <Fields visible={filters.testsInfo}>
-              <Field inline visible={test.dependencies.length > 0}>
-                <Key>Depends on:</Key>
-                <Value>{test.dependencies.join(", ")}</Value>
-              </Field>
-              <FieldGroup
-                className="row between-xs middle-xs"
-                visible={!!test.startedAt}
-              >
-                <Field inline className="col-xs" visible={!!test.startedAt}>
-                  <Key>Ran:</Key>
-                  <Value>{moment(test.startedAt).fromNow()}</Value>
-                </Field>
-                <Field inline visible={test.state === "succeeded"}>
-                  <Key>Took:</Key>
-                  <Value>{test.duration}</Value>
-                </Field>
-              </FieldGroup>
-              <div className="row">
-                <div className="col-xs">
-                  <ShowResultButton
-                    entityType="test"
-                    moduleName={name}
-                    entityName={test.name}
-                    onClick={handleSelectEntity}
-                  />
-                </div>
-              </div>
-            </Fields>
-          </EntityCard>
-        ))} */}
+            test={test}
+            showInfo={filters.testsInfo}
+            isLoading={isLoadingEntities}
+          />
+        ))}
       </EntityCards>
       <EntityCards visible={filters.tasks && tasks.length > 0}>
-        {/* {tasks.map(task => (
-
-          <EntityCard
+        {tasks.map(task => (
+          <TaskCard
             key={task.name}
-            entity={task}
-            type={"task"}
+            task={task}
+            showInfo={filters.tasksInfo}
+            isLoading={isLoadingEntities}
           />
-        ))} */}
+        ))}
       </EntityCards>
     </Module>
   )
